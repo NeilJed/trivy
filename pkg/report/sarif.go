@@ -2,11 +2,14 @@ package report
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	containerName "github.com/google/go-containerregistry/pkg/name"
@@ -68,6 +71,8 @@ type sarifData struct {
 	message          string
 	cvssScore        string
 	locations        []location
+	fingerprint      string
+	occurrences      []ftypes.Occurrence
 }
 
 type location struct {
@@ -104,12 +109,25 @@ func (sw *SarifWriter) addSarifRule(data *sarifData) {
 
 func (sw *SarifWriter) addSarifResult(data *sarifData) {
 	sw.addSarifRule(data)
+	sarifLocations := toSarifLocations(data.locations, data.artifactLocation.String(), data.locationMessage)
+
+	partialFingerprints := map[string]interface{}{
+		"primaryLocationLineHash": data.fingerprint,
+	}
 
 	result := sarif.NewRuleResult(data.vulnerabilityId).
 		WithRuleIndex(data.resultIndex).
 		WithMessage(sarif.NewTextMessage(data.message)).
 		WithLevel(toSarifErrorLevel(data.severity)).
-		WithLocations(toSarifLocations(data.locations, data.artifactLocation.String(), data.locationMessage))
+		WithLocations(sarifLocations).
+		WithPartialFingerPrints(partialFingerprints)
+
+	if len(data.occurrences) > 0 {
+		codeFlow := toCodeFlow(data.occurrences, data.artifactLocation.String(), sarifLocations)
+		if codeFlow != nil {
+			result = result.WithCodeFlows([]*sarif.CodeFlow{codeFlow})
+		}
+	}
 	sw.run.AddResult(result)
 }
 
@@ -196,6 +214,15 @@ func (sw *SarifWriter) Write(_ context.Context, report types.Report) error {
 						endLine:   misconf.CauseMetadata.EndLine,
 					},
 				},
+				fingerprint: toPartialFingeprintHash(
+					misconf.ID,
+					locationURI,
+					misconf.CauseMetadata.Resource,
+					misconf.CauseMetadata.StartLine,
+					misconf.CauseMetadata.EndLine,
+					causeLinesConcat(misconf.CauseMetadata.Code.Lines),
+				),
+				occurrences:      misconf.CauseMetadata.Occurrences,
 				resultIndex:      getRuleIndex(misconf.ID, ruleIndexes),
 				shortDescription: misconf.Title,
 				fullDescription:  misconf.Description,
@@ -437,4 +464,74 @@ func severityToScore(severity string) string {
 	default:
 		return "0.0"
 	}
+}
+
+func toPartialFingeprintHash(parts ...interface{}) string {
+	// generate a partial fingerprint hash from the provided parts.
+	var sb strings.Builder
+	for i, part := range parts {
+		if i > 0 {
+			sb.WriteString("|")
+		}
+		switch v := part.(type) {
+		case string:
+			sb.WriteString(v)
+		case int:
+			sb.WriteString(strconv.Itoa(v))
+		case fmt.Stringer:
+			sb.WriteString(v.String())
+		default:
+			sb.WriteString(fmt.Sprintf("%v", v))
+		}
+	}
+	h := sha1.New()
+	h.Write([]byte(sb.String()))
+	return hex.EncodeToString(h.Sum(nil)[:12])
+}
+
+func causeLinesConcat(lines []ftypes.Line) string {
+	// concatenate all cause lines into a single string, removing whitespace.
+	var sb strings.Builder
+	re := regexp.MustCompile(`\s+`)
+	for _, line := range lines {
+		if line.IsCause {
+			sb.WriteString(re.ReplaceAllString(line.Content, ""))
+		}
+	}
+	return sb.String()
+}
+
+func toCodeFlow(occurrences []ftypes.Occurrence, artifactLocation string, sarifLocations []*sarif.Location) *sarif.CodeFlow {
+	if len(occurrences) == 0 {
+		return nil
+	}
+	var threadFlowLocations []*sarif.ThreadFlowLocation
+
+	// add occurrences in reverse order so the code flow starts at the entry point and proceeds step-by-step to the root cause.
+	// this is basically the reverse of the 'via' output in table format.
+	for i := len(occurrences) - 1; i >= 0; i-- {
+		occ := occurrences[i]
+		locStruct := location{
+			startLine: occ.Location.StartLine,
+			endLine:   occ.Location.EndLine,
+		}
+		// use toSarifLocations to get []*sarif.Location
+		occSarifLocs := toSarifLocations([]location{locStruct}, occ.Filename, occ.Resource)
+		for _, sl := range occSarifLocs {
+			threadFlowLocations = append(threadFlowLocations,
+				sarif.NewThreadFlowLocation().WithLocation(sl),
+			)
+		}
+	}
+
+	// add the location(s) of the root cause to the end of the codeFlow.
+	for _, sl := range sarifLocations {
+		threadFlowLocations = append(threadFlowLocations,
+			sarif.NewThreadFlowLocation().WithLocation(sl),
+		)
+	}
+
+	threadFlow := sarif.NewThreadFlow().WithLocations(threadFlowLocations)
+	codeFlow := sarif.NewCodeFlow().WithThreadFlows([]*sarif.ThreadFlow{threadFlow})
+	return codeFlow
 }
