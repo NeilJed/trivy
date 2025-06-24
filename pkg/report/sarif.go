@@ -112,17 +112,21 @@ func (sw *SarifWriter) addSarifResult(data *sarifData) {
 	sw.addSarifRule(data)
 	sarifLocations := toSarifLocations(data.locations, data.artifactLocation.String(), data.locationMessage)
 
-	partialFingerprints := map[string]any{
-		"primaryLocationLineHash": data.fingerprint,
-	}
-
 	result := sarif.NewRuleResult(data.vulnerabilityId).
 		WithRuleIndex(data.resultIndex).
 		WithMessage(sarif.NewTextMessage(data.message)).
 		WithLevel(toSarifErrorLevel(data.severity)).
-		WithLocations(sarifLocations).
-		WithPartialFingerPrints(partialFingerprints)
+		WithLocations(sarifLocations)
 
+	// add the fingerprint if it exists
+	if data.fingerprint != "" {
+		partialFingerprints := map[string]any{
+			"primaryLocationLineHash": data.fingerprint,
+		}
+		result = result.WithPartialFingerPrints(partialFingerprints)
+	}
+
+	// if we have occurences add them to make a code flow
 	if len(data.occurrences) > 0 {
 		codeFlow := toCodeFlow(data.occurrences, sarifLocations)
 		if codeFlow != nil {
