@@ -2,6 +2,7 @@ package report
 
 import (
 	"context"
+	// #nosec G505 -- Reason: SHA-1 is used for non-cryptographic fingerprinting.
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -111,7 +112,7 @@ func (sw *SarifWriter) addSarifResult(data *sarifData) {
 	sw.addSarifRule(data)
 	sarifLocations := toSarifLocations(data.locations, data.artifactLocation.String(), data.locationMessage)
 
-	partialFingerprints := map[string]interface{}{
+	partialFingerprints := map[string]any{
 		"primaryLocationLineHash": data.fingerprint,
 	}
 
@@ -123,7 +124,7 @@ func (sw *SarifWriter) addSarifResult(data *sarifData) {
 		WithPartialFingerPrints(partialFingerprints)
 
 	if len(data.occurrences) > 0 {
-		codeFlow := toCodeFlow(data.occurrences, data.artifactLocation.String(), sarifLocations)
+		codeFlow := toCodeFlow(data.occurrences, sarifLocations)
 		if codeFlow != nil {
 			result = result.WithCodeFlows([]*sarif.CodeFlow{codeFlow})
 		}
@@ -466,7 +467,7 @@ func severityToScore(severity string) string {
 	}
 }
 
-func toPartialFingeprintHash(parts ...interface{}) string {
+func toPartialFingeprintHash(parts ...any) string {
 	// generate a partial fingerprint hash from the provided parts.
 	var sb strings.Builder
 	for i, part := range parts {
@@ -484,6 +485,7 @@ func toPartialFingeprintHash(parts ...interface{}) string {
 			sb.WriteString(fmt.Sprintf("%v", v))
 		}
 	}
+	// #nosec G401 -- Reason: SHA-1 is used here for non-cryptographic fingerprinting only.
 	h := sha1.New()
 	h.Write([]byte(sb.String()))
 	return hex.EncodeToString(h.Sum(nil)[:12])
@@ -501,7 +503,7 @@ func causeLinesConcat(lines []ftypes.Line) string {
 	return sb.String()
 }
 
-func toCodeFlow(occurrences []ftypes.Occurrence, artifactLocation string, sarifLocations []*sarif.Location) *sarif.CodeFlow {
+func toCodeFlow(occurrences []ftypes.Occurrence, sarifLocations []*sarif.Location) *sarif.CodeFlow {
 	if len(occurrences) == 0 {
 		return nil
 	}
