@@ -299,6 +299,9 @@ func TestReportWriter_Sarif(t *testing.T) {
 										},
 									},
 								},
+								PartialFingerprints: map[string]any{
+									"primaryLocationLineHash": "9f0b7e9d271cb097b183f17d",
+								},
 							},
 							{
 								RuleID:    lo.ToPtr("KSV002"),
@@ -321,6 +324,9 @@ func TestReportWriter_Sarif(t *testing.T) {
 											},
 										},
 									},
+								},
+								PartialFingerprints: map[string]any{
+									"primaryLocationLineHash": "93b4b26231df5816b34f4202",
 								},
 							},
 						},
@@ -690,6 +696,60 @@ func TestReportWriter_Sarif(t *testing.T) {
 										Message: sarif.NewTextMessage("github.com/terraform-google-modules/terraform-google-kubernetes-engine?ref=c4809044b52b91505bfba5ef9f25526aa0361788/modules/workload-identity/main.tf"),
 									},
 								},
+								PartialFingerprints: map[string]any{
+									"primaryLocationLineHash": "148bd30ba01ef34258550034",
+								},
+								CodeFlows: []*sarif.CodeFlow{
+									{
+										ThreadFlows: []*sarif.ThreadFlow{
+											{
+												Locations: []*sarif.ThreadFlowLocation{
+													{
+														Location: &sarif.Location{
+															PhysicalLocation: sarif.NewPhysicalLocation().
+																WithArtifactLocation(
+																	&sarif.ArtifactLocation{
+																		URI:       lo.ToPtr("git::https:/github.com/terraform-google-modules/terraform-google-kubernetes-engine?ref=c4809044b52b91505bfba5ef9f25526aa0361788/modules/workload-identity/main.tf"),
+																		URIBaseId: lo.ToPtr("ROOTPATH"),
+																	},
+																).
+																WithRegion(
+																	&sarif.Region{
+																		StartLine:   lo.ToPtr(87),
+																		StartColumn: lo.ToPtr(1),
+																		EndLine:     lo.ToPtr(93),
+																		EndColumn:   lo.ToPtr(1),
+																	},
+																),
+															Message: sarif.NewTextMessage("google_project_iam_member.workload_identity_sa_bindings[\"roles/storage.admin\"]"),
+														},
+													},
+													{
+														Location: &sarif.Location{
+															PhysicalLocation: sarif.NewPhysicalLocation().
+																WithArtifactLocation(
+																	&sarif.ArtifactLocation{
+																		URI:       lo.ToPtr("github.com/terraform-google-modules/terraform-google-kubernetes-engine?ref=c4809044b52b91505bfba5ef9f25526aa0361788/modules/workload-identity/main.tf"),
+																		URIBaseId: lo.ToPtr("ROOTPATH"),
+																	},
+																).
+																WithRegion(
+																	&sarif.Region{
+																		StartLine:   lo.ToPtr(91),
+																		StartColumn: lo.ToPtr(1),
+																		EndLine:     lo.ToPtr(91),
+																		EndColumn:   lo.ToPtr(1),
+																	},
+																),
+
+															Message: sarif.NewTextMessage("github.com/terraform-google-modules/terraform-google-kubernetes-engine?ref=c4809044b52b91505bfba5ef9f25526aa0361788/modules/workload-identity/main.tf"),
+														},
+													},
+												},
+											},
+										},
+									},
+								},
 							},
 							{
 								RuleID:    lo.ToPtr("AVD-GCP-0007"),
@@ -714,6 +774,59 @@ func TestReportWriter_Sarif(t *testing.T) {
 												},
 											),
 										Message: sarif.NewTextMessage("github.com/terraform-aws-modules/terraform-aws-s3-bucket/tree/v4.2.0/main.tf"),
+									},
+								},
+								PartialFingerprints: map[string]any{
+									"primaryLocationLineHash": "e41456c4db09fdb1a1a6188e",
+								},
+								CodeFlows: []*sarif.CodeFlow{
+									{
+										ThreadFlows: []*sarif.ThreadFlow{
+											{
+												Locations: []*sarif.ThreadFlowLocation{
+													{
+														Location: &sarif.Location{
+															PhysicalLocation: sarif.NewPhysicalLocation().
+																WithArtifactLocation(
+																	&sarif.ArtifactLocation{
+																		URI:       lo.ToPtr("git@github.com:terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v4.2.0/main.tf"),
+																		URIBaseId: lo.ToPtr("ROOTPATH"),
+																	},
+																).
+																WithRegion(
+																	&sarif.Region{
+																		StartLine:   lo.ToPtr(87),
+																		StartColumn: lo.ToPtr(1),
+																		EndLine:     lo.ToPtr(93),
+																		EndColumn:   lo.ToPtr(1),
+																	},
+																),
+															Message: sarif.NewTextMessage("google_project_iam_member.workload_identity_sa_bindings[\"roles/storage.admin\"]"),
+														},
+													},
+													{
+														Location: &sarif.Location{
+															PhysicalLocation: sarif.NewPhysicalLocation().
+																WithArtifactLocation(
+																	&sarif.ArtifactLocation{
+																		URI:       lo.ToPtr("github.com/terraform-aws-modules/terraform-aws-s3-bucket/tree/v4.2.0/main.tf"),
+																		URIBaseId: lo.ToPtr("ROOTPATH"),
+																	},
+																).
+																WithRegion(
+																	&sarif.Region{
+																		StartLine:   lo.ToPtr(91),
+																		StartColumn: lo.ToPtr(1),
+																		EndLine:     lo.ToPtr(91),
+																		EndColumn:   lo.ToPtr(1),
+																	},
+																),
+															Message: sarif.NewTextMessage("github.com/terraform-aws-modules/terraform-aws-s3-bucket/tree/v4.2.0/main.tf"),
+														},
+													},
+												},
+											},
+										},
 									},
 								},
 							},

@@ -126,7 +126,7 @@ func (sw *SarifWriter) addSarifResult(data *sarifData) {
 		result = result.WithPartialFingerPrints(partialFingerprints)
 	}
 
-	// if we have occurences add them to make a code flow
+	// if we have occurrences add them to make a code flow
 	if len(data.occurrences) > 0 {
 		codeFlow := toCodeFlow(data.occurrences, sarifLocations)
 		if codeFlow != nil {
